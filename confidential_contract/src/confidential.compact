@@ -1,0 +1,41 @@
+// This file is part of zk-fleet-compliance-prover
+// SPDX-License-Identifier: Apache-2.0
+
+pragma language_version >= 0.20;
+
+import CompactStandardLibrary;
+
+// --------------------------------------------------
+// Public State
+// --------------------------------------------------
+
+// Stores whether the fleet is compliant (true/false)
+export ledger fleetCompliance: Bool;
+
+// Stores the current compliance round number
+export ledger round: Counter;
+
+
+// --------------------------------------------------
+// Transition Circuits
+// --------------------------------------------------
+
+// Called when a company submits a valid zk proof
+// (In a real version, the proof verification would happen here)
+export circuit submitCompliance(): [] {
+
+  // Mark fleet as compliant
+  fleetCompliance = true;
+
+  // Increase compliance round
+  round.increment(1);
+}
+
+
+// Regulator can revoke compliance
+export circuit revokeCompliance(): [] {
+
+  fleetCompliance = false;
+
+  round.increment(1);
+}
