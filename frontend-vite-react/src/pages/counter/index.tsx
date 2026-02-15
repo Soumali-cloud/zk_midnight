@@ -1,6 +1,6 @@
 import { Loading } from "@/components/loading";
 import { useEffect, useState } from "react";
-import { RefreshCw, PlusCircle } from "lucide-react";
+import { CheckCircle2, ShieldAlert, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -15,19 +15,25 @@ export const Counter = () => {
   const [appLoading, setAppLoading] = useState(true);
 
   useEffect(() => {
-    if (derivedState?.round !== undefined) {
+    if (derivedState) {
       setAppLoading(false);
     }
-  }, [derivedState?.round]);
+  }, [derivedState]);
 
   const deployNew = async () => {
     const { address } = await onDeploy();
     setDeployedAddress(address);
   };
 
-  const increment = async () => {
+  const submitCompliance = async () => {
     if (deployedContractAPI) {
-      await deployedContractAPI.increment();
+      await deployedContractAPI.submitCompliance();
+    }
+  };
+
+  const revokeCompliance = async () => {
+    if (deployedContractAPI) {
+      await deployedContractAPI.revokeCompliance();
     }
   };
 
@@ -37,8 +43,8 @@ export const Counter = () => {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div className="text-center md:text-left">
-            <h1 className="text-4xl font-bold text-foreground mb-2">Counter Contract</h1>
-            <p className="text-xl text-muted-foreground">Interact with the counter smart contract</p>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Fleet Compliance Contract</h1>
+            <p className="text-xl text-muted-foreground">Call contract circuits from confidential.compact</p>
           </div>
           <div className="hidden md:block">
             <ModeToggle />
@@ -50,9 +56,9 @@ export const Counter = () => {
             <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <PlusCircle className="w-10 h-10 text-primary" />
             </div>
-            <CardTitle className="text-2xl">Counter Contract</CardTitle>
+            <CardTitle className="text-2xl">Compliance Controller</CardTitle>
             <CardDescription className="max-w-md mx-auto">
-              Deploy and interact with a simple counter smart contract
+              Deploy and call submit/revoke compliance circuits
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -80,33 +86,49 @@ export const Counter = () => {
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Private Data</p>
-                    <p className="text-2xl font-bold">{derivedState?.privateState.privateCounter || '0'}</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Fleet Compliance</p>
+                    <p className="text-2xl font-bold">{derivedState?.fleetCompliance ? "true" : "false"}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Turns</p>
-                    <p className="text-sm font-mono break-all">{derivedState?.turns.increment || 'idle'}</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Submit Action</p>
+                    <p className="text-sm font-mono break-all">{derivedState?.turns.submitCompliance || 'idle'}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Contract Address</p>
-                    <p className="text-sm font-mono break-all">{deployedContractAPI?.deployedContractAddress || 'Not deployed'}</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Revoke Action</p>
+                    <p className="text-sm font-mono break-all">{derivedState?.turns.revokeCompliance || 'idle'}</p>
                   </CardContent>
                 </Card>
               </div>
 
-              <div className="flex justify-center mt-6">
+              <Card className="mt-6">
+                <CardContent className="pt-6">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Contract Address</p>
+                  <p className="text-sm font-mono break-all">{deployedContractAPI?.deployedContractAddress || 'Not deployed'}</p>
+                </CardContent>
+              </Card>
+
+              <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
                 <Button
-                  onClick={increment}
+                  onClick={submitCompliance}
                   disabled={!deployedContractAPI}
                   variant={deployedContractAPI ? "default" : "secondary"}
                   className="gap-2"
                 >
-                  <RefreshCw className="w-5 h-5" />
-                  <span>Increment Counter</span>
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>Submit Compliance</span>
+                </Button>
+                <Button
+                  onClick={revokeCompliance}
+                  disabled={!deployedContractAPI}
+                  variant={deployedContractAPI ? "destructive" : "secondary"}
+                  className="gap-2"
+                >
+                  <ShieldAlert className="w-5 h-5" />
+                  <span>Revoke Compliance</span>
                 </Button>
               </div>
 

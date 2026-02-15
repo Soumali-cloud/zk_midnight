@@ -14,17 +14,20 @@ export type CounterContract = Counter.Contract<CounterPrivateState>;
 export type DeployedCounterContract = DeployedContract<CounterContract> | FoundContract<CounterContract>;
 
 export type UserAction = {
-  increment: string | undefined;  
+  submitCompliance: string | undefined;
+  revokeCompliance: string | undefined;
 };
 
 export type DerivedState = {
   readonly round: Counter.Ledger["round"];
+  readonly fleetCompliance: boolean;
   readonly privateState: CounterPrivateState;
   readonly turns: UserAction;
 };
 
 export const emptyState: DerivedState = {
   round: 0n,
+  fleetCompliance: false,
   privateState: createPrivateState(0),
-  turns: { increment: undefined },
+  turns: { submitCompliance: undefined, revokeCompliance: undefined },
 };

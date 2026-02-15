@@ -15,7 +15,8 @@ const counterCompiledContract = CompiledContract.make('counter', Counter.Contrac
 export interface ContractControllerInterface {
   readonly deployedContractAddress: ContractAddress;   
   readonly state$: Rx.Observable<DerivedState>;
-  increment: () => Promise<void>;
+  submitCompliance: () => Promise<void>;
+  revokeCompliance: () => Promise<void>;
 }
 
 export class ContractController implements ContractControllerInterface {
@@ -33,6 +34,7 @@ export class ContractController implements ContractControllerInterface {
     const combine = (_acc: DerivedState, value: DerivedState): DerivedState => {
       return {
         round: value.round,
+        fleetCompliance: value.fleetCompliance,
         privateState: value.privateState,
         turns: value.turns,        
       };
@@ -51,11 +53,17 @@ export class ContractController implements ContractControllerInterface {
           ),
           this.privateStates$,
         ),
-        Rx.concat(Rx.of<UserAction>({ increment: undefined }), this.turns$),
+        Rx.concat(
+          Rx.of<UserAction>({ submitCompliance: undefined, revokeCompliance: undefined }),
+          this.turns$,
+        ),
       ],
       (ledgerState, privateState, userActions) => {
+        const fleetCompliance =
+          (ledgerState as Counter.Ledger & { fleetCompliance?: boolean }).fleetCompliance ?? false;
         const result: DerivedState = {
           round: ledgerState.round,
+          fleetCompliance,
           privateState: privateState,
           turns: userActions,
         };
@@ -70,28 +78,52 @@ export class ContractController implements ContractControllerInterface {
     );
   }
 
-  async increment(): Promise<void> {
-    this.logger?.info('incrementing counter');
-    this.turns$.next({ increment: 'incrementinng the counter' });
+  private async invokeCircuitMethod(
+    methodName: 'submitCompliance' | 'revokeCompliance',
+    inProgressText: string,
+  ): Promise<void> {
+    const callTx = this.deployedContract.callTx as Record<string, () => Promise<{
+      public: { txHash: string; blockHeight: bigint };
+    }>>;
+    const method = callTx[methodName];
+    if (typeof method !== 'function') {
+      throw new Error(`Contract circuit '${methodName}' is not available in current compiled contract`);
+    }
 
     try {
-      const txData = await this.deployedContract.callTx.increment();
+      this.turns$.next({
+        submitCompliance: methodName === 'submitCompliance' ? inProgressText : undefined,
+        revokeCompliance: methodName === 'revokeCompliance' ? inProgressText : undefined,
+      });
+      const txData = await method();
       this.logger?.trace({
-        increment: {
-          message: 'incrementing the counter - blockchain info',
+        [methodName]: {
+          message: `${methodName} transaction completed`,
           txHash: txData.public.txHash,
           blockHeight: txData.public.blockHeight,
         },
       });
       this.turns$.next({
-        increment: undefined,
+        submitCompliance: undefined,
+        revokeCompliance: undefined,
       });
     } catch (e) {
       this.turns$.next({
-        increment: undefined,
+        submitCompliance: undefined,
+        revokeCompliance: undefined,
       });
       throw e;
     }
+  }
+
+  async submitCompliance(): Promise<void> {
+    this.logger?.info('submitting fleet compliance');
+    await this.invokeCircuitMethod('submitCompliance', 'submitting compliance proof');
+  }
+
+  async revokeCompliance(): Promise<void> {
+    this.logger?.info('revoking fleet compliance');
+    await this.invokeCircuitMethod('revokeCompliance', 'revoking compliance');
   }
 
   static async deploy(
