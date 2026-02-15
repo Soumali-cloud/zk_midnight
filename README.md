@@ -56,7 +56,13 @@ docker -v
 git lfs version
 compact check  # Should show latest version
 ```
-
+## UI
+![ui](Screenshot5.png)
+![ui](Screenshot6.png)
+![ui](Screenshot7.png)
+![ui](Screenshot8.png)
+![ui](Screenshot9.png)
+![ui](Screenshot10.png)
 ## 📁 Project Structure
 
 ```
